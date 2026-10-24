@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">短信转发</string>
+
+    <string name="main_title">短信转发</string>
+    <string name="main_subtitle">收到短信后分条发送至指定邮箱</string>
+    <string name="btn_settings">设置</string>
+    <string name="btn_status">状态与日志</string>
+
+    <string name="placeholder_m2">设置页将在 M2 里程碑完成</string>
+    <string name="placeholder_m7">状态页将在 M7 里程碑完成</string>
+    <string name="placeholder_miui">MIUI 保活引导将在 M7 里程碑完成</string>
+
+    <string name="channel_keepalive">后台保活</string>
+    <string name="keepalive_notification_text">正在监听短信并转发邮件</string>
+</resources>

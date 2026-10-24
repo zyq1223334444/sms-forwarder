@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 聊天气泡 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,34 C30,29.6 33.6,26 38,26 L70,26 C74.4,26 78,29.6 78,34 L78,56 C78,60.4 74.4,64 70,64 L52,64 L42,74 L44,64 L38,64 C33.6,64 30,60.4 30,56 Z" />
+
+    <!-- 气泡内三点（短信内容示意） -->
+    <path
+        android:fillColor="#1E88E5"
+        android:pathData="M40,40 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
+    <path
+        android:fillColor="#1E88E5"
+        android:pathData="M54,40 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
+    <path
+        android:fillColor="#1E88E5"
+        android:pathData="M68,40 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
+
+    <!-- 邮件信封示意（右下角） -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M66,70 L84,70 L84,84 L66,84 Z" />
+    <path
+        android:fillColor="#1E88E5"
+        android:pathData="M66,70 L75,78 L84,70 Z" />
+
+</vector>

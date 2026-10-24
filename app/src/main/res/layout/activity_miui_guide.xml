@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="小米（MIUI / HyperOS）保活设置引导"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="以下设置能保证应用长期常驻后台、短信实时转发。核心是前三项（自启动+电池无限制+加锁），务必全部完成。"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/tv_guide"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="★★★ 必做（保活核心）★★★\n\n1. 自启动：设置 → 应用设置 → 授权管理 → 自启动管理 → 允许本应用\n   （没有它：应用被系统清理后，新短信广播无法唤醒应用，只能靠补偿补发）\n\n2. 电池策略：设置 → 应用管理 → 短信转发 → 电池省电策略 → 无限制\n   （弹窗提示时选『允许后台活动』；防止系统按省电策略定时回收进程）\n\n3. 最近任务加锁：多任务界面下拉本应用卡片，出现锁形图标\n   （防止『一键清理』把应用清掉；不清除也建议锁上）\n\n★ 建议完成 ★\n\n4. 通知权限：设置 → 通知管理 → 短信转发 → 允许通知\n   （前台保活通知依赖；拒绝只影响保活增强，不影响核心收发）\n\n5. 神隐模式/智能省电（旧版 MIUI）：设置 → 电池与性能 → 应用智能省电 → 本应用设为无限制\n\n6. 设置 → 应用管理 → 短信转发 → 后台弹出界面 / 后台运行：均保持允许\n\n7. WLAN 休眠：设置 → WLAN → 高级设置 → 休眠时保持 WLAN 连接（选自动或保持连接）\n\n可选：开发者选项 → 关闭『MIUI 优化』可进一步提升存活率（会改变系统界面行为，慎用）"
+            android:textSize="14sp"
+            android:lineSpacingExtra="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="关于『像微信一样被杀也能收到消息』：\n· 微信/QQ 能实现，是因为它们是系统预装级应用并接入厂商推送通道——消息由系统推送服务送达，不依赖应用进程存活。\n· 第三方短信转发应用无法接入该系统通道，但本应用有双重保险：\n  ① 前台保活+以上设置 → 应用长期常驻，短信到达即时转发；\n  ② 即使进程被清理，短信不会丢：下次打开应用、每 15 分钟周期、或手动点『立即扫描短信』，都会把期间错过的短信（近 30 分钟）自动补发。\n· 唯一例外：系统『强制停止』后广播无法唤起，需手动打开一次应用（这是 Android 系统限制，任何应用都一样）。"
+            android:textColor="#D32F2F"
+            android:textSize="13sp"
+            android:lineSpacingExtra="2dp" />
+
+    </LinearLayout>
+
+</ScrollView>

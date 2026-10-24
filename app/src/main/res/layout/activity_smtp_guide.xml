@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SMTP 授权码获取教程"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="授权码不是邮箱登录密码。它是邮箱服务商为第三方客户端（如本应用）单独生成的专用密码，需先在邮箱网页端手动开启 SMTP 服务后获取。"
+            android:textSize="13sp"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:lineSpacingExtra="2dp" />
+
+        <!-- QQ 邮箱 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="QQ 邮箱（推荐测试）"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#1E88E5" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="步骤：\n1. 电脑浏览器登录 mail.qq.com（手机浏览器部分版本无法进入设置，建议用电脑）；\n2. 顶部菜单：设置 → 账户；\n3. 找到「POP3/IMAP/SMTP/Exchange/CardDAV/CalDAV服务」区，将「SMTP 服务」和「IMAP/SMTP 服务」均开启；\n4. 按提示发送短信验证（需手机验证码）；\n5. 验证通过后页面显示一个 16 位授权码（形如 abcdefghijklmnop），复制并粘贴到应用的「SMTP 授权码」输入框；\n6. 若授权码遗失，回到同一页面点「生成授权码」重新生成（旧码立即失效）。\n\nSMTP 配置（应用内已自动填充）：smtp.qq.com · 端口 465 · SSL\n注意：QQ 邮箱对授权码发信有单日数量上限，短信量极大时可能临时被限制。"
+            android:textSize="13sp"
+            android:lineSpacingExtra="2dp" />
+
+        <!-- 163 / 126 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="163 / 126 邮箱"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#1E88E5" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="步骤：\n1. 登录 mail.163.com（或 mail.126.com）网页版；\n2. 顶部：设置 → POP3/SMTP/IMAP；\n3. 勾选「开启 POP3/SMTP 服务」（或「开启 IMAP/SMTP 服务」）；\n4. 按提示用绑定手机发送短信验证；\n5. 页面弹出「客户端授权密码」，复制并填入应用；\n6. 若忘记授权码，可回到该页面重新开启（会生成新码）。\n\nSMTP 配置：smtp.163.com / smtp.126.com · 端口 465 · SSL"
+            android:textSize="13sp"
+            android:lineSpacingExtra="2dp" />
+
+        <!-- 139 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="139 邮箱（移动）"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#1E88E5" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="步骤：\n1. 登录 mail.139.com 网页版；\n2. 设置 → 客户端密码；\n3. 选择「新增客户端专用密码」，按提示生成；\n4. 复制生成的专用密码填入应用。\n\nSMTP 配置：smtp.139.com · 端口 465 · SSL"
+            android:textSize="13sp"
+            android:lineSpacingExtra="2dp" />
+
+        <!-- 新浪 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="新浪邮箱"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#1E88E5" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="步骤：\n1. 登录 mail.sina.com.cn 网页版；\n2. 设置 → 客户端设置 → POP3/SMTP；\n3. 开启「SMTP 服务」后生成客户端授权码；\n4. 复制授权码填入应用。\n\nSMTP 配置：smtp.sina.com · 端口 465 · SSL"
+            android:textSize="13sp"
+            android:lineSpacingExtra="2dp" />
+
+        <!-- 搜狐 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="搜狐邮箱"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#1E88E5" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="步骤：\n1. 登录搜狐邮箱网页版；\n2. 设置 → POP3/SMTP/IMAP 服务；\n3. 开启 SMTP 服务并按提示获取授权码。\n\nSMTP 配置：smtp.sohu.com · 端口 465 · SSL"
+            android:textSize="13sp"
+            android:lineSpacingExtra="2dp" />
+
+        <!-- Gmail -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="Gmail（尽力而为）"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#1E88E5" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="步骤：\n1. 账户安全中开启「两步验证」；\n2. 在「应用专用密码」为邮件客户端生成 16 位密码；\n3. 将密码填入「SMTP 授权码」。\n\nSMTP 配置：smtp.gmail.com · 端口 465 · SSL\n注意：国内网络对 Gmail 可达性不稳定，可能发送失败，首版不承诺必可用。"
+            android:textSize="13sp"
+            android:lineSpacingExtra="2dp" />
+
+        <!-- Outlook -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="Outlook / Hotmail（尽力而为）"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#1E88E5" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="SMTP 配置：smtp.office365.com · 端口 587 · STARTTLS\n注意：微软已逐步关闭第三方客户端的基本密码认证，多数账号需 OAuth 登录，本应用首版不支持，可能无法使用。建议优先使用 QQ / 163 / 139。"
+            android:textSize="13sp"
+            android:lineSpacingExtra="2dp" />
+
+        <!-- 通用提示 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="常见问题"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#D32F2F" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="· 授权码与登录密码不同：填错授权码会显示「失败（永久）」，需重新获取并点「重试失败」；\n· 授权码属敏感信息：本应用以 AES256 加密存储，不明文落盘、不进日志；\n· 建议首选国内邮箱（QQ/163/139），大陆网络下最稳定；\n· 若收不到邮件，先检查手机网络、邮箱垃圾箱，再到状态页查看失败原因。"
+            android:textSize="13sp"
+            android:lineSpacingExtra="2dp" />
+
+    </LinearLayout>
+
+</ScrollView>
