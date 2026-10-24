@@ -1,4 +1,4 @@
-[🇨🇳 中文](README.zh-CN.md) · [⬇ Download](https://github.com/zyq1223334444/SmsForwarder/releases)
+[🇨🇳 中文](README.zh-CN.md) · [⬇ Download](https://github.com/zyq1223334444/sms-forwarder/releases)
 # SmsForwarder
 **Every SMS your phone receives, forwarded to your mailbox — one email per message, in real time.**
 
@@ -55,7 +55,7 @@ Two independent paths feed the queue:
 
 ## Download
 
-Get the APK from the [Releases](https://github.com/zyq1223334444/SmsForwarder/releases) page.
+Get the APK from the [Releases](https://github.com/zyq1223334444/sms-forwarder/releases) page.
 
 | Asset | Notes |
 |---|---|

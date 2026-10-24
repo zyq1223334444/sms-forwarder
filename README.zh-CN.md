@@ -1,4 +1,4 @@
-[🇬🇧 English](README.md) · [⬇ 下载](https://github.com/zyq1223334444/SmsForwarder/releases)
+[🇬🇧 English](README.md) · [⬇ 下载](https://github.com/zyq1223334444/sms-forwarder/releases)
 # SmsForwarder
 **手机收到的每条短信，分条实时转发到你的邮箱。**
 
@@ -44,7 +44,7 @@
 
 ## 下载
 
-到 [Releases](https://github.com/zyq1223334444/SmsForwarder/releases) 页下载 APK。
+到 [Releases](https://github.com/zyq1223334444/sms-forwarder/releases) 页下载 APK。
 
 | 文件 | 说明 |
 |---|---|
