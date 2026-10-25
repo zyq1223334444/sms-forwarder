@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 内置 Shizuku APK 安装用：允许 FileProvider 分享 cacheDir 下的安装包 -->
+<paths>
+    <cache-path
+        name="cache"
+        path="." />
+</paths>

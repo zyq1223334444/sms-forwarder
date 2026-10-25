@@ -14,6 +14,7 @@ coroutines = "1.10.2"
 securityCrypto = "1.1.0-alpha06"
 recyclerview = "1.4.0"
 javaxMail = "1.6.7"
+shizuku = "13.1.5"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -32,6 +33,8 @@ androidx-security-crypto = { group = "androidx.security", name = "security-crypt
 androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
 javax-mail-android = { group = "com.sun.mail", name = "android-mail", version.ref = "javaxMail" }
 javax-mail-activation = { group = "com.sun.mail", name = "android-activation", version.ref = "javaxMail" }
+shizuku-api = { group = "dev.rikka.shizuku", name = "api", version.ref = "shizuku" }
+shizuku-provider = { group = "dev.rikka.shizuku", name = "provider", version.ref = "shizuku" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

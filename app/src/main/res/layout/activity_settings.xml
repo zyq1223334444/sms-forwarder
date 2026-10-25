@@ -39,7 +39,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="干跑模式（默认开启）"
+            android:text="干跑模式（默认关闭）"
             android:textSize="14sp" />
 
         <TextView
@@ -127,12 +127,15 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:hint="加密方式"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
 
                 <com.google.android.material.textfield.MaterialAutoCompleteTextView
                     android:id="@+id/input_encryption"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:minHeight="0dp"
+                    android:paddingTop="16dp"
+                    android:paddingBottom="16dp"
                     android:textSize="14sp"
                     android:inputType="none" />
 
@@ -228,6 +231,22 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switch_auto_network"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="短信到达时自动开启网络（发送后关闭）"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="默认关闭。开启后每次发送邮件前自动打开 WiFi 与移动数据，发送完成后恢复原状。首次打开会申请网络控制权限。注意：Android 11+ 系统禁止应用直接开关网络（setWifiEnabled 已失效），需安装 Shizuku 并经 adb 激活后本功能才能自动生效（见安装说明第四节）；无 Shizuku/Root 时请保持网络开启。"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="12sp" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_save"
             android:layout_width="match_parent"
@@ -245,6 +264,16 @@
             android:text="发送测试邮件（手动）"
             android:textSize="15sp"
             style="@style/Widget.Material3.Button.TonalButton"
+            app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_about"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="关于"
+            android:textSize="14sp"
+            style="@style/Widget.Material3.Button.TextButton"
             app:cornerRadius="12dp" />
 
     </LinearLayout>

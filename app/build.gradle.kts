@@ -26,8 +26,8 @@ android {
         applicationId = "com.sms.forward"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.0.0"
+        versionCode = 6
+        versionName = "1.3.1"
     }
 
     signingConfigs {
@@ -101,4 +101,8 @@ dependencies {
     // JavaMail（Android 移植版）
     implementation(libs.javax.mail.android)
     implementation(libs.javax.mail.activation)
+
+    // Shizuku：无 Root 设备通过 adb 授权的 shell 权限执行 svc 命令（自动开关 WiFi/移动数据）
+    implementation(libs.shizuku.api)
+    implementation(libs.shizuku.provider)
 }

@@ -1,0 +1,6 @@
+Shizuku (内置安装包)
+Copyright (c) RikkaApps - https://github.com/RikkaApps/Shizuku
+Licensed under the Apache License, Version 2.0 (see LICENSE file in this directory).
+
+本应用内置 Shizuku 官方 APK 仅作原样再分发（用户点击"去安装"时直接安装），
+未做任何修改；完整许可证文本见本目录 LICENSE 文件。

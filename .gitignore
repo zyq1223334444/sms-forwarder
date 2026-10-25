@@ -20,3 +20,5 @@ apk_check/
 *.png
 *.jpg
 ui*.xml
+
+/dist/

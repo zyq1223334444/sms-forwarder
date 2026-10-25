@@ -11,7 +11,7 @@ import com.sms.forward.util.SecurePrefs
 object MailConfig {
 
     const val KEY_ENABLED = "mail_enabled"
-    const val KEY_DRY_RUN = "dry_run"                 // 干跑模式开关，默认 true
+    const val KEY_DRY_RUN = "dry_run"                 // 干跑模式开关，默认 false（装好用即真实转发）
     const val KEY_SMTP_HOST = "smtp_host"
     const val KEY_SMTP_PORT = "smtp_port"
     const val KEY_SMTP_ENCRYPTION = "smtp_encryption" // SSL / STARTTLS / NONE
@@ -20,6 +20,7 @@ object MailConfig {
     const val KEY_TO_EMAIL = "to_email"               // 目标邮箱
     const val KEY_SHOW_FULL_NUMBER = "show_full_number" // 主题是否显示完整号码，默认 false
     const val KEY_SEND_INTERVAL_MS = "send_interval_ms" // 限速间隔，默认 4000ms
+    const val KEY_AUTO_NETWORK = "auto_network"          // 短信到达自动开网络（发送后关闭），默认 false
     const val KEY_RECONCILE_BASELINE_ID = "reconcile_baseline_id" // 补偿基线最大 _id
 
     data class MailSettings(
@@ -32,7 +33,8 @@ object MailConfig {
         val authCode: String,
         val toEmail: String,
         val showFullNumber: Boolean,
-        val sendIntervalMs: Long
+        val sendIntervalMs: Long,
+        val autoNetwork: Boolean
     )
 
     fun isConfigured(context: Context): Boolean {
@@ -52,13 +54,14 @@ object MailConfig {
         p.putString(context, KEY_TO_EMAIL, s.toEmail)
         p.putBoolean(context, KEY_SHOW_FULL_NUMBER, s.showFullNumber)
         p.putLong(context, KEY_SEND_INTERVAL_MS, s.sendIntervalMs)
+        p.putBoolean(context, KEY_AUTO_NETWORK, s.autoNetwork)
     }
 
     fun load(context: Context): MailSettings {
         val p = SecurePrefs
         return MailSettings(
             enabled = p.getBoolean(context, KEY_ENABLED, false),
-            dryRun = p.getBoolean(context, KEY_DRY_RUN, true),
+            dryRun = p.getBoolean(context, KEY_DRY_RUN, false),
             host = p.getString(context, KEY_SMTP_HOST, "").orEmpty(),
             port = p.getInt(context, KEY_SMTP_PORT, 465),
             encryption = p.getString(context, KEY_SMTP_ENCRYPTION, "SSL").orEmpty(),
@@ -66,7 +69,8 @@ object MailConfig {
             authCode = p.getString(context, KEY_AUTH_CODE, "").orEmpty(),
             toEmail = p.getString(context, KEY_TO_EMAIL, "").orEmpty(),
             showFullNumber = p.getBoolean(context, KEY_SHOW_FULL_NUMBER, false),
-            sendIntervalMs = p.getLong(context, KEY_SEND_INTERVAL_MS, 4000L)
+            sendIntervalMs = p.getLong(context, KEY_SEND_INTERVAL_MS, 4000L),
+            autoNetwork = p.getBoolean(context, KEY_AUTO_NETWORK, false)
         )
     }
 }

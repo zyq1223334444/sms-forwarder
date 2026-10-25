@@ -20,11 +20,15 @@ interface SmsDao {
     @Query("SELECT id FROM sms WHERE status = 'PENDING' OR (status = 'FAILED_RETRYABLE' AND retryCount < :maxRetry) ORDER BY id ASC LIMIT 1")
     suspend fun nextClaimableId(maxRetry: Int): Long?
 
+    /** 取最早的网络类失败记录（FAILED_NETWORK，长期可重试，网络恢复后自动补发） */
+    @Query("SELECT id FROM sms WHERE status = 'FAILED_NETWORK' ORDER BY id ASC LIMIT 1")
+    suspend fun nextNetworkClaimableId(): Long?
+
     /**
-     * 原子抢占：仅当当前状态为 PENDING 或 FAILED_RETRYABLE 时才置为 SENDING。
+     * 原子抢占：仅当当前状态为 PENDING / FAILED_RETRYABLE / FAILED_NETWORK 时才置为 SENDING。
      * 返回受影响行数（0 = 已被其他执行者抢占/状态已变）。
      */
-    @Query("UPDATE sms SET status = 'SENDING' WHERE id = :id AND status IN ('PENDING','FAILED_RETRYABLE')")
+    @Query("UPDATE sms SET status = 'SENDING' WHERE id = :id AND status IN ('PENDING','FAILED_RETRYABLE','FAILED_NETWORK')")
     suspend fun tryClaim(id: Long): Int
 
     @Query("SELECT * FROM sms WHERE id = :id LIMIT 1")
@@ -43,6 +47,10 @@ interface SmsDao {
     @Query("UPDATE sms SET status = 'FAILED_RETRYABLE', retryCount = retryCount + 1, lastError = :error WHERE id = :id")
     suspend fun markRetryable(id: Long, error: String?)
 
+    /** 网络类失败：长期可重试（不占 5 次上限），网络恢复后自动补发 */
+    @Query("UPDATE sms SET status = 'FAILED_NETWORK', lastError = :error WHERE id = :id")
+    suspend fun markNetworkRetryable(id: Long, error: String?)
+
     @Query("UPDATE sms SET status = 'FAILED_PERMANENT', lastError = :error WHERE id = :id")
     suspend fun markPermanent(id: Long, error: String?)
 
@@ -51,13 +59,13 @@ interface SmsDao {
     suspend fun requeue(id: Long)
 
     /** 批量重试：把所有失败记录重新置为 PENDING */
-    @Query("UPDATE sms SET status = 'PENDING', retryCount = 0 WHERE status IN ('FAILED_RETRYABLE','FAILED_PERMANENT')")
+    @Query("UPDATE sms SET status = 'PENDING', retryCount = 0 WHERE status IN ('FAILED_RETRYABLE','FAILED_PERMANENT','FAILED_NETWORK')")
     suspend fun requeueAllFailed(): Int
 
     @Query("SELECT * FROM sms ORDER BY id DESC LIMIT :limit")
     fun observeRecent(limit: Int): Flow<List<SmsEntity>>
 
-    @Query("SELECT * FROM sms WHERE status IN ('FAILED_RETRYABLE','FAILED_PERMANENT') ORDER BY id DESC LIMIT :limit")
+    @Query("SELECT * FROM sms WHERE status IN ('FAILED_RETRYABLE','FAILED_PERMANENT','FAILED_NETWORK') ORDER BY id DESC LIMIT :limit")
     fun observeFailed(limit: Int): Flow<List<SmsEntity>>
 
     @Query("SELECT COUNT(*) FROM sms WHERE status = 'PENDING'")

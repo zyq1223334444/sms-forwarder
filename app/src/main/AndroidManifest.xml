@@ -10,6 +10,19 @@
     <!-- 网络 -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- 网络自动开关（可选功能）：WiFi 开关/查询 + 网络状态变更 -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <!-- Android 13+ 附近 WiFi 设备（运行时申请；neverForLocation 不连带定位权限） -->
+    <uses-permission
+        android:name="android.permission.NEARBY_WIFI_DEVICES"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="33" />
+    <!-- Shizuku：无 Root 设备自动开关网络所需（adb 授权后获得 shell 权限） -->
+    <uses-permission android:name="moe.shizuku.perm.SHIZUKU" />
+    <!-- 应用内安装内置 Shizuku APK（用户主动触发，系统安装器安装） -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- 开机自启补偿 -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -61,6 +74,16 @@
             android:name=".ui.SmtpGuideActivity"
             android:exported="false" />
 
+        <!-- 关于页 -->
+        <activity
+            android:name=".ui.AboutActivity"
+            android:exported="false" />
+
+        <!-- 离线 README 查看页 -->
+        <activity
+            android:name=".ui.ReadmeActivity"
+            android:exported="false" />
+
         <!-- 短信到达广播（系统保护广播，exported=true 仅系统可送达） -->
         <receiver
             android:name=".SmsReceiver"
@@ -85,6 +108,26 @@
             android:name=".service.KeepAliveService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+
+        <!-- Shizuku Provider（应用获得 Shizuku 授权所必需） -->
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="com.sms.forward.shizuku"
+            android:enabled="true"
+            android:exported="true"
+            android:multiprocess="false"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
+
+        <!-- 内置 Shizuku APK 安装：FileProvider 授权给系统安装器读取 -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.sms.forward.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
 

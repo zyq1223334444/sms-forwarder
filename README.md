@@ -34,24 +34,30 @@ Two independent paths feed the queue:
 - **Real-time forwarding** — broadcast receiver + foreground keep-alive service; on MIUI/HyperOS,
   follow the in-app setup guide (auto-start, no battery restriction, task lock) and the app behaves
   like a system app.
-- **Never loses a message** — compensation scan: on app open, every 15 minutes, or the manual
-  **Scan now** button, all SMS received in the last 30 minutes are re-queued; duplicate emails are
+- **Never loses a message** — compensation scan on app open, every 15 minutes, or the manual
+  **Scan now** button re-queues all SMS received in the last 30 minutes; duplicate emails are
   impossible (dedup by message key).
-- **Long SMS reassembly** — multi-part SMS (verification codes > 70 chars) are joined back into the
-  full body before sending.
+- **Long SMS reassembly** — multi-part SMS (long verification codes) are joined back into the full
+  body before sending.
 - **Dual-SIM aware** — slot and carrier are detected live via `SubscriptionManager`; gracefully
   degrades to "unknown slot" when the ROM's SMS view lacks the column.
 - **Mailbox presets** — 126 / 163 / QQ / Gmail / Outlook / iCloud etc. one tap to fill
   (server, port, SSL), custom SMTP supported.
-- **Dry-run mode** — default ON: everything is processed locally but nothing is ever sent over the
-  network. Flip it off when you are ready for real forwarding.
+- **Auto network (optional, off by default)** — when an SMS arrives with no usable network, the app
+  turns WiFi on automatically; **mobile data is enabled only if WiFi cannot connect**, then the
+  network is restored to its original state. See below.
+- **Long-term resend for network failures** — a network/SMTP connection failure is marked
+  "network failure" and kept waiting; it is resent automatically once the network is back, and does
+  not consume the 5-retry limit.
 - **Reliable delivery** — serial worker, at-least-once semantics, crash recovery, exponential retry
   with backoff (up to 5 attempts), permanent-failure classification (auth / address / 5xx vs.
   network / timeout / 4xx), 9-minute hard limit per cycle with chained continuation.
 - **Privacy by default** — sender number is masked (`138****1234`) unless you opt in to full
   numbers; the SMTP credential is stored with AES-256 (EncryptedSharedPreferences), never in
   plaintext, `allowBackup=false`.
-- **MIUI guide** — in-app step-by-step keep-alive setup for MIUI / HyperOS.
+- **Dry-run (off by default)** — when enabled, messages are listened to/parsed/stored locally but
+  never sent; once off, real forwarding is active.
+- **About screen** — Settings → About shows the version and offline Chinese/English READMEs.
 
 ## Download
 
@@ -59,7 +65,7 @@ Get the APK from the [Releases](https://github.com/zyq1223334444/sms-forwarder/r
 
 | Asset | Notes |
 |---|---|
-| `SmsForwarder-v1.0.0.apk` | signed release APK, install directly on the phone |
+| `SmsForwarder-v1.3.1.apk` | signed release APK, install directly on the phone |
 
 Side-load only — this app reads SMS / phone state, so it is **not** published on any app store.
 
@@ -68,8 +74,8 @@ Side-load only — this app reads SMS / phone state, so it is **not** published 
 1. **Install & grant permissions.** Open the app → **Settings** → enable **Forwarding** → Save.
    Grant all requested permissions (Receive SMS / Read SMS / Phone state / Notifications).
 2. **Configure a mailbox.** Pick the **126.com** preset, enter your 126 address and **SMTP
-   authorization code** (not the login password), keep **Dry-run** on and hit **Test email** to
-   verify the whole chain without sending anything real, then turn **Dry-run** off.
+   authorization code** (not the login password), hit **Test email** to verify the chain, then turn
+   **Dry-run** off.
 3. **Keep it alive (MIUI).** Open the in-app **MIUI keep-alive guide** and complete the 3 core
    items: **Auto-start allowed**, **Battery → no restriction**, **Lock in recent tasks**.
 
@@ -82,16 +88,50 @@ Side-load only — this app reads SMS / phone state, so it is **not** published 
    copy it into the app — this is what the app uses to send mail, not your login password.
 
 > Any mailbox with SMTP works. 126/163/QQ use a 16-char authorization code; Gmail/Outlook use an
-> app password. If your mailbox requires additional verification on web login, you will need it
-> when reading forwarded mail from school.
+> app password.
 
-## Verification code use case (school)
+## Auto network on SMS arrival (optional)
 
-1. Leave the phone (with this app running) at home — battery unlimited + auto-start + task lock;
-2. At school, request a verification code anywhere (login pages, payment, etc.);
-3. The phone forwards it to your 126 inbox within seconds;
-4. Open webmail on a school computer/tablet — **126 web login does not need an SMS code**, so you
-   get the code and finish the login.
+Enable "Auto turn on network when an SMS arrives (turn off after sending)" in Settings — **off by
+default**. Strategy:
+
+- Before sending it turns **WiFi** on first; **mobile data is enabled only when WiFi cannot
+  connect / there is no usable network** (with WiFi present, data is left alone to save traffic);
+- After sending it **restores the original state** — it only turns off the switch it temporarily
+  opened, never a network you already had on.
+
+**System limitation (important):** Android 11+ forbids third-party apps from toggling WiFi/mobile
+data directly (`setWifiEnabled` always fails for third-party apps; there is no public API for
+mobile data). The app uses **Shizuku** (no root) to run `svc wifi/data enable` with shell
+capability after a one-time adb authorization.
+
+**Since v1.3.0 the official Shizuku installer is bundled — no download needed:** when you turn the
+switch on, the app auto-detects Shizuku — if not installed it shows a dialog and installs the
+bundled Shizuku in one tap (you will be asked to "allow installing unknown apps" the first time);
+if installed but not activated, it shows the activation steps.
+
+1. Turn on the "Auto network" switch → tap **Install** in the dialog → allow → continue, Shizuku
+   is installed;
+2. Enable **Developer options → USB debugging** on the phone, connect to a PC;
+3. Run the activation command (Shizuku 13.6 uses `libshizuku.so` inside its install dir; **the
+   path changes per install** — the in-app dialog reads and shows the real path, or tap
+   "View instructions" in the Shizuku app):
+   ```
+   adb shell <Shizuku install dir>/lib/arm64/libshizuku.so
+   ```
+   Example (the path differs per install, follow the dialog):
+   ```
+   adb shell /data/app/~~XXXX==/moe.shizuku.privileged.api-XXXX==/lib/arm64/libshizuku.so
+   ```
+4. Open the Shizuku app, tap Start, then allow "SmsForwarder" under "Authorized apps";
+5. Keep the switch on in the app settings. (adb mode stops after a reboot — rerun the command once
+   after restarting the phone.)
+
+> Note: the old `adb shell sh /sdcard/Android/data/.../start.sh` was removed in Shizuku 13.6 and
+> now reports No such file.
+
+Without Shizuku (or root) auto-network cannot work; in that case a network failure is kept waiting
+and the message is resent automatically when the network returns — no SMS is lost.
 
 ## MIUI / HyperOS keep-alive (core 3, do all of them)
 
@@ -137,8 +177,8 @@ does not affect forwarding.
 | Component | Version |
 |---|---|
 | Android SDK | compileSdk 36, build-tools 37, minSdk 26, targetSdk 35 |
-| JDK | 17 (Microsoft OpenJDK) |
-| Gradle | 8.13 (Tencent mirror; official CDN times out in CN) |
+| JDK | 17 |
+| Gradle | 8.13 |
 | AGP / Kotlin / KSP | 8.13.0 / 2.1.0 / 2.1.0-1.0.29 |
 | Room / WorkManager / JavaMail | 2.7.2 / 2.10.1 / com.sun.mail:android-mail:1.6.7 |
 
@@ -157,13 +197,18 @@ Signing: the release build signs with `key/smsforwarder.jks` configured in `loca
 |---|---|
 | `app/src/main/java/com/sms/forward/` | all Kotlin sources |
 | `…/SmsReceiver.kt` | SMS broadcast receiver (instant path) |
+| `…/util/NetworkAutoToggler.kt` | auto network (Shizuku svc wifi/data + restore) |
 | `…/work/ReconcileWorker.kt` | compensation scanner (baseline + last-30-min catch-up) |
-| `…/work/SendQueueWorker.kt` | serial send queue, retries, at-least-once |
+| `…/work/SendQueueWorker.kt` | serial send queue, retries, network-failure resend |
 | `…/mail/MailSender.kt` | JavaMail SMTP (SSL/STARTTLS) |
-| `…/sim/SimInfoHelper.kt` | live dual-SIM detection |
-| `…/ui/` | Main / Settings / Status / MIUI guide activities |
-| `app/src/main/res/` | layouts, themes, adaptive icon |
+| `…/ui/AboutActivity.kt` | About screen (version + Chinese/English README) |
+| `app/src/main/assets/shizuku/` | bundled Shizuku installer + license files |
+| `app/src/main/assets/readme/` | offline Chinese/English READMEs shown in the app |
 
 ## License
 
-[MIT](LICENSE) © 2026 zyq1223334444
+[MIT](LICENSE) © 2026 zyq1223334444.
+
+The auto-network feature bundles **Shizuku** (Apache License 2.0, © RikkaApps) as an **unmodified**
+official installer; the full license and notice ship with the app
+(`app/src/main/assets/shizuku/LICENSE`, `NOTICE.txt`).

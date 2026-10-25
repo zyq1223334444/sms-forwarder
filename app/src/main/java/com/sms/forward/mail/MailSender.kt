@@ -30,7 +30,8 @@ object MailSender {
 
     sealed class SendResult {
         data class Success(val messageId: String) : SendResult()
-        data class Failure(val permanent: Boolean, val message: String?) : SendResult()
+        /** @param permanent 永久失败（鉴权/5xx，停止重试）；@param network 网络类失败（长期可重试） */
+        data class Failure(val permanent: Boolean, val network: Boolean, val message: String?) : SendResult()
     }
 
     /**
@@ -61,6 +62,7 @@ object MailSender {
             val type = MailErrorClassifier.classify(t)
             SendResult.Failure(
                 permanent = type == MailErrorClassifier.TYPE_PERMANENT,
+                network = type == MailErrorClassifier.TYPE_NETWORK,
                 message = MailErrorClassifier.sanitizeMessage(t.message ?: t.javaClass.simpleName)
             )
         }

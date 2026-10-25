@@ -13,6 +13,7 @@ import com.sms.forward.data.SmsStatus
 import com.sms.forward.mail.MailConfig
 import com.sms.forward.mail.MailErrorClassifier
 import com.sms.forward.mail.MailSender
+import com.sms.forward.util.NetworkAutoToggler
 import java.util.concurrent.TimeUnit
 
 /**
@@ -49,7 +50,9 @@ class SendQueueWorker(
 
         val startTime = System.currentTimeMillis()
         var processed = 0
+        var networkHandled = false
 
+        // 主循环：处理 PENDING / FAILED_RETRYABLE（含 5 次上限判定）
         while (System.currentTimeMillis() - startTime < HARD_TIME_LIMIT_MS) {
             val id = dao.nextClaimableId(MAX_RETRY) ?: break
             // 原子抢占：仅 PENDING/FAILED_RETRYABLE → SENDING
@@ -57,17 +60,32 @@ class SendQueueWorker(
             if (claimed == 0) continue
             val entity = dao.getById(id) ?: continue
 
-            processOne(dao, entity, settings)
+            val outcome = processOne(dao, entity, settings)
+            if (outcome == Outcome.NETWORK) networkHandled = true
             processed++
             if (settings.sendIntervalMs > 0) {
                 kotlinx.coroutines.delay(settings.sendIntervalMs)
             }
         }
 
-        // 限时结束仍有积压 → 链式续投；否则完成
-        val remaining = dao.pendingCount()
-        return if (remaining > 0) {
-            Log.i(TAG, "本轮处理 $processed 条，剩余 $remaining 条，链式续投")
+        // 网络类兜底（FAILED_NETWORK，长期可重试）：每轮最多处理 1 条，防无网时空转
+        if (!networkHandled && System.currentTimeMillis() - startTime < HARD_TIME_LIMIT_MS) {
+            val netId = dao.nextNetworkClaimableId()
+            if (netId != null) {
+                val claimed = dao.tryClaim(netId)
+                if (claimed > 0) {
+                    dao.getById(netId)?.let { entity ->
+                        if (processOne(dao, entity, settings) == Outcome.NETWORK) networkHandled = true
+                    }
+                }
+            }
+        }
+
+        // 限时结束仍有积压，或网络类失败需持续补发 → 链式续投（退避后自动重试，网络恢复即补发）
+        val remaining = dao.nextClaimableId(MAX_RETRY) != null ||
+            (networkHandled && dao.nextNetworkClaimableId() != null)
+        return if (remaining) {
+            Log.i(TAG, "本轮处理 $processed 条，剩余可领取，链式续投")
             Result.retry()
         } else {
             Log.i(TAG, "队列清空，本轮处理 $processed 条")
@@ -75,32 +93,57 @@ class SendQueueWorker(
         }
     }
 
+    /** 单条处理结果：网络类失败会驱动退避续投 */
+    private enum class Outcome { SENT, RETRYABLE, NETWORK, PERMANENT, DRY }
+
     private suspend fun processOne(
         dao: com.sms.forward.data.SmsDao,
         entity: com.sms.forward.data.SmsEntity,
         settings: MailConfig.MailSettings
-    ) {
+    ): Outcome {
         if (settings.dryRun) {
             // 干跑：不连接网络，仅记录
             dao.markDryRun(entity.id)
             Log.i(TAG, "干跑 #${entity.id} sender=${entity.sender}")
-            return
+            return Outcome.DRY
         }
 
-        when (val result = MailSender.send(entity, settings)) {
-            is MailSender.SendResult.Success -> {
-                dao.markSent(entity.id, result.messageId)
-                Log.i(TAG, "已发送 #${entity.id} -> ${maskEmail(settings.toEmail)}")
-            }
-            is MailSender.SendResult.Failure -> {
-                if (result.permanent) {
-                    dao.markPermanent(entity.id, result.message)
-                    Log.w(TAG, "永久失败 #${entity.id}: ${result.message}")
-                } else {
-                    dao.markRetryable(entity.id, result.message)
-                    Log.w(TAG, "可重试 #${entity.id} 第 ${entity.retryCount + 1} 次: ${result.message}")
+        // 可选功能（默认关）：发送前临时开启移动数据/WiFi，等待网络就绪，发送完成后恢复原状
+        val netState = if (settings.autoNetwork) {
+            val st = NetworkAutoToggler.ensureNetworkOn(applicationContext)
+            NetworkAutoToggler.waitForNetwork(applicationContext)
+            st
+        } else null
+
+        try {
+            return when (val result = MailSender.send(entity, settings)) {
+                is MailSender.SendResult.Success -> {
+                    dao.markSent(entity.id, result.messageId)
+                    Log.i(TAG, "已发送 #${entity.id} -> ${maskEmail(settings.toEmail)}")
+                    Outcome.SENT
+                }
+                is MailSender.SendResult.Failure -> {
+                    when {
+                        result.permanent -> {
+                            dao.markPermanent(entity.id, result.message)
+                            Log.w(TAG, "永久失败 #${entity.id}: ${result.message}")
+                            Outcome.PERMANENT
+                        }
+                        result.network -> {
+                            dao.markNetworkRetryable(entity.id, result.message)
+                            Log.w(TAG, "网络失败 #${entity.id}（长期重试，网络恢复后补发）: ${result.message}")
+                            Outcome.NETWORK
+                        }
+                        else -> {
+                            dao.markRetryable(entity.id, result.message)
+                            Log.w(TAG, "可重试 #${entity.id} 第 ${entity.retryCount + 1} 次: ${result.message}")
+                            Outcome.RETRYABLE
+                        }
+                    }
                 }
             }
+        } finally {
+            netState?.let { NetworkAutoToggler.restoreNetwork(applicationContext, it) }
         }
     }
 
