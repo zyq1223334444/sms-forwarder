@@ -26,8 +26,8 @@ android {
         applicationId = "com.sms.forward"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
-        versionName = "1.3.1"
+        versionCode = 7
+        versionName = "1.3.2"
     }
 
     signingConfigs {

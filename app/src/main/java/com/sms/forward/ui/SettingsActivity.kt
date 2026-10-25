@@ -17,6 +17,7 @@ import com.sms.forward.mail.MailConfig
 import com.sms.forward.mail.MailPresets
 import com.sms.forward.service.KeepAliveService
 import com.sms.forward.util.NetworkAutoToggler
+import com.sms.forward.util.ShizukuGuard
 import java.io.File
 
 /**
@@ -84,8 +85,10 @@ class SettingsActivity : AppCompatActivity() {
             startActivity(Intent(this, AboutActivity::class.java))
         }
 
-        // 首次打开"自动开网络"开关时：申请网络控制权限 + 检测 Shizuku 并引导
+        // 首次打开"自动开网络"开关时：申请网络控制权限 + 检测 Shizuku 并引导；
+        // 同时注册/取消 Shizuku 守护（每 5 分钟检测，停止时通知提醒）
         binding.switchAutoNetwork.setOnCheckedChangeListener { _, checked ->
+            ShizukuGuard.schedule(this)
             if (checked && !loadingConfig) {
                 requestNetworkPermissions()
                 checkShizuku()

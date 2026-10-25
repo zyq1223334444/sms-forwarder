@@ -103,6 +103,16 @@
             </intent-filter>
         </receiver>
 
+        <!-- Shizuku 守护（AlarmManager 周期触发，应用内接收） -->
+        <receiver
+            android:name=".ui.ShizukuGuardReceiver"
+            android:exported="false" />
+
+        <!-- Shizuku 守护检测（应用内 AlarmManager 触发，非导出） -->
+        <receiver
+            android:name=".ui.ShizukuGuardReceiver"
+            android:exported="false" />
+
         <!-- 可选前台保活服务 -->
         <service
             android:name=".service.KeepAliveService"

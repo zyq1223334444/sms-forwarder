@@ -34,6 +34,7 @@
 - **可靠投递**：串行队列、至少一次语义、崩溃恢复、指数退避（最多 5 次）、失败分类（鉴权 / 地址 / 5xx 与网络 / 超时 / 4xx 区别对待）。
 - **隐私优先**：发件号码默认打码（`138****1234`），需要时再打开完整号码；SMTP 授权码用 AES-256（EncryptedSharedPreferences）加密存储，`allowBackup=false`。
 - **干跑模式（默认关闭）**：开启后本地照常监听、解析、入库但不真实发送；装好用即真实转发。
+- **Shizuku 守护（v1.3.2，随自动开网开关启用）**：每 5 分钟检测，把 `shizuku_server` 固定为系统「不可杀」级别（`oom_score_adj = -1000`），后台清理（MIUI/HyperOS）不再回收；Shizuku 停止时发常驻通知提醒。
 - **关于页**：设置 → 关于，可查看版本号与离线内置的中英文说明。
 
 ## 下载
@@ -42,7 +43,7 @@
 
 | 文件 | 说明 |
 |---|---|
-| `SmsForwarder-v1.3.1.apk` | 已签名 release APK，直接安装 |
+| `SmsForwarder-v1.3.2.apk` | 最新版，直接安装（含 Shizuku 守护） |
 
 仅支持侧载（应用需读取短信 / 手机状态），未上架任何应用商店。
 
@@ -87,6 +88,17 @@
 > 注：旧版 Shizuku 文档里的 `adb shell sh /sdcard/Android/data/.../start.sh` 在 13.6 已废弃，会报 No such file。
 
 未激活 Shizuku（也无 Root）时该功能无法自动开网；此时**网络失败会长期标记等待，网络恢复后自动补发**，不会丢短信。
+
+### Shizuku 守护（v1.3.2，防 Shizuku 被杀）
+
+部分系统（尤其 MIUI/HyperOS）的后台清理会把 Shizuku 进程回收，导致自动开网失效。**v1.3.2 内置 Shizuku 守护**：
+
+- 打开「自动开网络」开关后自动启用，每 5 分钟检测一次；
+- Shizuku 运行时，通过 Shizuku 的 shell 能力把 `shizuku_server` 的 `oom_score_adj` 写为 `-1000`（系统"不可杀"级别），**LMKD 不再回收它**（实测有效且不被回改）；
+- pid 动态获取（`pidof shizuku_server`），**无需判断安装路径，全机型通用**；
+- 若 Shizuku 已完全停止（如重启手机后未重新激活），守护无法自行重启它（启动脚本必须以 adb/shell 身份执行，Shizuku 停止时应用拿不到 shell 通道），此时会发出**常驻通知**提醒重新激活，恢复后通知自动消失。
+
+配合下方 MIUI 保活 3 项，Shizuku 可长期常驻，自动开网功能持续可用。
 
 ## MIUI / HyperOS 保活（核心 3 项，务必完成）
 
@@ -137,6 +149,7 @@ rem 产物：app\build\outputs\apk\release\app-release.apk
 | `app/src/main/java/com/sms/forward/` | 全部 Kotlin 源码 |
 | `…/SmsReceiver.kt` | 短信广播接收器（实时链路） |
 | `…/util/NetworkAutoToggler.kt` | 自动开网络（Shizuku svc wifi/data + 恢复） |
+| `…/util/ShizukuGuard.kt` + `…/ui/ShizukuGuardReceiver.kt` | Shizuku 守护（5 分钟保活，停止时提醒） |
 | `…/work/ReconcileWorker.kt` | 补偿扫描（基线 + 近 30 分钟回捞） |
 | `…/work/SendQueueWorker.kt` | 串行发送队列、重试、网络失败补发 |
 | `…/mail/MailSender.kt` | JavaMail SMTP（SSL/STARTTLS） |
