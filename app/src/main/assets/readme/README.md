@@ -156,11 +156,16 @@ Together with the MIUI keep-alive table below, Shizuku stays resident and auto-n
 
 ## MIUI / HyperOS keep-alive (core 3, do all of them)
 
+> **Apply to BOTH apps**: ① SmsForwarder (forwarding itself) and ② Shizuku (auto-network depends on it).
+> Verified on-device (v1.3.2): once Shizuku's app process is reclaimed, `shizuku_server` exits with
+> it and auto-network breaks — so **keeping Shizuku alive matters even more than keeping this app
+> alive**. In particular, never swipe Shizuku away in the recents screen.
+
 | # | Setting | Path |
 |---|---|---|
-| 1 | **Auto-start allowed** | Settings → Apps → Manage apps → Authorizations → Auto-start → allow this app |
-| 2 | **Battery: no restriction** | Settings → Apps → Manage apps → SmsForwarder → battery → **no restriction** (choose "allow background activity") |
-| 3 | **Lock in recent tasks** | Recents screen → long-press the app card → lock icon |
+| 1 | **Auto-start allowed** | Settings → Apps → Manage apps → Authorizations → Auto-start → allow **SmsForwarder and Shizuku** |
+| 2 | **Battery: no restriction** | Settings → Apps → Manage apps → SmsForwarder / Shizuku → battery → **no restriction** (choose "allow background activity") |
+| 3 | **Lock in recent tasks** | Recents screen → long-press **both** app cards → lock icon |
 
 Then enable **Notifications** (the foreground service depends on it) and keep WLAN connected while
 asleep. The in-app guide lists the full set.
