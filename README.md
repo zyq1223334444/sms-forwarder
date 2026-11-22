@@ -31,6 +31,13 @@ Two independent paths feed the queue:
 - **One email per SMS** — each message becomes its own mail, subject like
   `[SMS][卡1·中国移动] 138****1234 · 10-24 09:30` (full number optional), full body + receive time +
   slot + 8-char message ID.
+- **Device status (v1.4.0)** — every mail also carries the **current battery level, the last known
+  location (lat/lon + accuracy), and the phone number of the SIM that received the SMS (first 3 +
+  last 4 digits, e.g. `卡1：181****1468`)** — handy at school to confirm the phone's state and which
+  card received the message. The app detects how many SIMs are inserted and reads each card's own
+  number automatically (a per-card manual entry is used only when the carrier does not expose the
+  number). If something is unavailable (no permission / no cached fix / number not written by
+  the carrier) the reason is stated; sending is never affected.
 - **Real-time forwarding** — broadcast receiver + foreground keep-alive service; on MIUI/HyperOS,
   follow the in-app setup guide (auto-start, no battery restriction, task lock) and the app behaves
   like a system app.

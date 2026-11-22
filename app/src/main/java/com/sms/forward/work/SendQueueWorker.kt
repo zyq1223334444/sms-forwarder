@@ -116,7 +116,13 @@ class SendQueueWorker(
         } else null
 
         try {
-            return when (val result = MailSender.send(entity, settings)) {
+            // 采集设备状态（电量/位置/本机号码）；失败不影响发送
+            val deviceInfo = runCatching {
+                com.sms.forward.util.DeviceSnapshot.capture(
+                    applicationContext, entity.subscriptionId, entity.simSlot
+                )
+            }.getOrNull()
+            return when (val result = MailSender.send(entity, settings, deviceInfo)) {
                 is MailSender.SendResult.Success -> {
                     dao.markSent(entity.id, result.messageId)
                     Log.i(TAG, "已发送 #${entity.id} -> ${maskEmail(settings.toEmail)}")

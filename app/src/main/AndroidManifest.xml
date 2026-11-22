@@ -6,6 +6,13 @@
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!-- 设备状态（v1.4.0）：邮件附带本机号码（前3后4）与当前位置 -->
+    <uses-permission android:name="android.permission.READ_PHONE_NUMBERS" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- 定位仅用于读取"最近已知位置"随邮件附带，不做持续定位 -->
+    <uses-feature android:name="android.hardware.location" android:required="false" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
     <!-- 网络 -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -104,11 +111,6 @@
         </receiver>
 
         <!-- Shizuku 守护（AlarmManager 周期触发，应用内接收） -->
-        <receiver
-            android:name=".ui.ShizukuGuardReceiver"
-            android:exported="false" />
-
-        <!-- Shizuku 守护检测（应用内 AlarmManager 触发，非导出） -->
         <receiver
             android:name=".ui.ShizukuGuardReceiver"
             android:exported="false" />

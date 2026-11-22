@@ -123,6 +123,9 @@ class StatusActivity : AppCompatActivity() {
             val timeText = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(now))
             val sender = "10000"
             val body = "【测试】这是一条由应用内「模拟测试短信」生成的测试短信，用于验证邮件转发链路。生成时间：$timeText"
+            // 模拟短信按"卡1"生成：便于验证邮件里"卡1："前缀与每卡手机号的取值逻辑
+            val firstSlot = com.sms.forward.sim.SimSlotDetector.detect(this@StatusActivity)
+                .firstOrNull()?.slot ?: 0
             val key = DedupKey.compute(sender, now, null, body, 1)
             val dao = AppDatabase.get(this@StatusActivity).smsDao()
             val entity = SmsEntity(
@@ -131,7 +134,8 @@ class StatusActivity : AppCompatActivity() {
                 senderRaw = sender,
                 body = body,
                 receivedAt = now,
-                status = SmsStatus.PENDING
+                status = SmsStatus.PENDING,
+                simSlot = firstSlot
             )
             val rowId = dao.insert(entity)
             if (rowId != -1L) SendQueueWorker.enqueue(this@StatusActivity)

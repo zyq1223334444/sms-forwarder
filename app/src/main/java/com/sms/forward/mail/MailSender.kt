@@ -36,9 +36,10 @@ object MailSender {
 
     /**
      * 真实发送：SMTP over SSL / STARTTLS / 明文。
+     * @param deviceInfo 设备状态段（电量/位置/本机号码），由调用方采集后传入，可为 null
      * @throws 由调用方捕获；此处返回分类结果
      */
-    fun send(entity: SmsEntity, settings: MailConfig.MailSettings): SendResult {
+    fun send(entity: SmsEntity, settings: MailConfig.MailSettings, deviceInfo: String? = null): SendResult {
         return try {
             val props = buildProps(settings)
             val session = Session.getInstance(props, object : Authenticator() {
@@ -51,7 +52,7 @@ object MailSender {
                 setFrom(InternetAddress(settings.username))
                 setRecipients(Message.RecipientType.TO, InternetAddress.parse(settings.toEmail, false))
                 subject = buildSubject(entity, settings)
-                setText(buildBody(entity, settings), "UTF-8")
+                setText(buildBody(entity, settings, deviceInfo), "UTF-8")
                 setHeader("Message-ID", messageId)
             }
             Transport.send(msg)
@@ -105,7 +106,11 @@ object MailSender {
         return "[短信转发]${simTag}来自 $number · $time"
     }
 
-    fun buildBody(entity: SmsEntity, settings: MailConfig.MailSettings): String {
+    fun buildBody(
+        entity: SmsEntity,
+        settings: MailConfig.MailSettings,
+        deviceInfo: String? = null
+    ): String {
         val fullTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(entity.receivedAt))
         return buildString {
             appendLine(entity.body)
@@ -117,6 +122,10 @@ object MailSender {
                 appendLine("卡槽: 卡${entity.simSlot + 1}${entity.carrierName?.let { " ($it)" } ?: ""}")
             }
             if (entity.multipartIncomplete) appendLine("注意: 长短信分片不完整")
+            if (!deviceInfo.isNullOrBlank()) {
+                appendLine()
+                appendLine(deviceInfo)
+            }
             appendLine("消息ID: ${DedupKey.shortHash(entity.uniqueKey)}")
         }
     }

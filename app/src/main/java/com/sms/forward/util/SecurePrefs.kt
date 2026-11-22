@@ -13,6 +13,12 @@ object SecurePrefs {
     private const val PREFS_NAME = "secure_config"
     private const val MASTER_KEY_ALIAS = "sms_forward_master_key"
 
+    /** v1.4.0：每张卡手动填写的本机号码，key = 前缀 + 卡槽序号（0 起） */
+    const val KEY_OWNER_NUMBER_SLOT = "owner_number_slot"
+
+    /** 旧版单卡字段（首次升级时迁移到卡1） */
+    const val KEY_OWNER_NUMBER = "owner_number"
+
     @Volatile
     private var instance: SharedPreferences? = null
 

@@ -6,6 +6,8 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
+import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -16,7 +18,9 @@ import com.sms.forward.databinding.ActivitySettingsBinding
 import com.sms.forward.mail.MailConfig
 import com.sms.forward.mail.MailPresets
 import com.sms.forward.service.KeepAliveService
+import com.sms.forward.sim.SimSlotDetector
 import com.sms.forward.util.NetworkAutoToggler
+import com.sms.forward.util.SecurePrefs
 import com.sms.forward.util.ShizukuGuard
 import java.io.File
 
@@ -32,6 +36,7 @@ class SettingsActivity : AppCompatActivity() {
 
     /** Shizuku 应用包名 */
     private companion object {
+        const val TAG = "SettingsActivity"
         const val SHIZUKU_PACKAGE = "moe.shizuku.privileged.api"
         const val SHIZUKU_DOWNLOAD_URL = "https://github.com/RikkaApps/Shizuku/releases"
         const val SHIZUKU_COOLMARKET_URI = "coolmarket://search?keyword=Shizuku"
@@ -277,6 +282,19 @@ class SettingsActivity : AppCompatActivity() {
         if (s.toEmail.isNotBlank()) binding.inputToEmail.setText(s.toEmail)
         binding.switchFullNumber.isChecked = s.showFullNumber
         binding.switchAutoNetwork.isChecked = s.autoNetwork
+        // 每张卡的本机号码：优先读按卡槽存的值，旧单卡配置只迁移一次（迁移后清掉旧 key）
+        val legacy = SecurePrefs.getString(this, SecurePrefs.KEY_OWNER_NUMBER).orEmpty()
+        val slot0 = SecurePrefs.getString(this, SecurePrefs.KEY_OWNER_NUMBER_SLOT + 0).orEmpty()
+        val slot1 = SecurePrefs.getString(this, SecurePrefs.KEY_OWNER_NUMBER_SLOT + 1).orEmpty()
+        if (slot0.isBlank() && legacy.isNotBlank()) {
+            SecurePrefs.putString(this, SecurePrefs.KEY_OWNER_NUMBER_SLOT + 0, legacy)
+            SecurePrefs.remove(this, SecurePrefs.KEY_OWNER_NUMBER)
+            binding.inputOwnerNumber1.setText(legacy)
+        } else {
+            binding.inputOwnerNumber1.setText(slot0)
+        }
+        binding.inputOwnerNumber2.setText(slot1)
+        applySlotDetection()
         binding.inputInterval.setText((s.sendIntervalMs / 1000L).toString())
         loadingConfig = false
 
@@ -292,8 +310,37 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    private fun collect(): MailConfig.MailSettings? {
-        val host = binding.inputSmtpHost.text?.toString()?.trim().orEmpty()
+    /** 按实际插卡数量显示"每卡手机号"输入项，并把系统能读到的号码自动填入（可修改） */
+    private fun applySlotDetection() {
+        val slots = SimSlotDetector.detect(this)
+        val slot0 = slots.firstOrNull { it.slot == 0 }
+        val slot1 = slots.firstOrNull { it.slot == 1 }
+
+        binding.tiOwnerNumber1.visibility = View.VISIBLE
+        binding.tiOwnerNumber1.hint = slotHint(1, slot0)
+        binding.tiOwnerNumber2.visibility = if (slots.isEmpty() || slot1 != null) View.VISIBLE else View.GONE
+        binding.tiOwnerNumber2.hint = slotHint(2, slot1)
+
+        // 输入框为空时自动填入系统读取到的号码；已有手填值不覆盖
+        if (binding.inputOwnerNumber1.text.isNullOrBlank()) slot0?.phoneNumber?.let { binding.inputOwnerNumber1.setText(it) }
+        if (binding.inputOwnerNumber2.text.isNullOrBlank()) slot1?.phoneNumber?.let { binding.inputOwnerNumber2.setText(it) }
+
+        Log.i(
+            TAG,
+            "插卡检测: 有卡数量=${slots.size} " +
+                slots.joinToString { "卡${it.slot + 1}(${it.carrierName ?: "运营商未知"},号码=${it.phoneNumber?.let { n -> "${n.take(3)}****${n.takeLast(4)}" } ?: "未读取"})" }
+        )
+    }
+
+    private fun slotHint(index: Int, slot: SimSlotDetector.Slot?): String = buildString {
+        append("卡${index}")
+        slot?.carrierName?.let { append("·$it") }
+        val read = slot?.phoneNumber
+        if (read != null) append(" 系统读取 ${read.take(3)}****${read.takeLast(4)}") else append(" 未读取到")
+        append("，可填/改")
+    }
+
+    private fun collect(): MailConfig.MailSettings? {        val host = binding.inputSmtpHost.text?.toString()?.trim().orEmpty()
         val port = binding.inputSmtpPort.text?.toString()?.trim().orEmpty().toIntOrNull() ?: 465
         val username = binding.inputUsername.text?.toString()?.trim().orEmpty()
         val authCode = binding.inputAuthCode.text?.toString()?.trim().orEmpty()
@@ -322,6 +369,17 @@ class SettingsActivity : AppCompatActivity() {
     private fun saveConfig() {
         val settings = collect() ?: return
         MailConfig.save(this, settings)
+        // v1.4.0：每张卡的本机号码（运营商未写 MSISDN 时手动指定，用于邮件标注前3后4）
+        SecurePrefs.putString(
+            this, SecurePrefs.KEY_OWNER_NUMBER_SLOT + 0,
+            binding.inputOwnerNumber1.text?.toString()?.trim().orEmpty()
+        )
+        SecurePrefs.putString(
+            this, SecurePrefs.KEY_OWNER_NUMBER_SLOT + 1,
+            binding.inputOwnerNumber2.text?.toString()?.trim().orEmpty()
+        )
+        // 已改为按卡存储，清掉旧版单卡 key，避免清空后又被兜底写回
+        SecurePrefs.remove(this, SecurePrefs.KEY_OWNER_NUMBER)
 
         if (settings.enabled) {
             requestSmsPermissions()
@@ -337,7 +395,11 @@ class SettingsActivity : AppCompatActivity() {
         val needed = mutableListOf(
             Manifest.permission.RECEIVE_SMS,
             Manifest.permission.READ_SMS,
-            Manifest.permission.READ_PHONE_STATE
+            Manifest.permission.READ_PHONE_STATE,
+            // v1.4.0 设备状态：本机号码前3后4 + 邮件附带位置（可选，拒绝只影响附带信息）
+            Manifest.permission.READ_PHONE_NUMBERS,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.ACCESS_FINE_LOCATION
         )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             needed.add(Manifest.permission.POST_NOTIFICATIONS)
