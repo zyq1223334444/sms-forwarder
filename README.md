@@ -31,11 +31,11 @@ Two independent paths feed the queue:
 - **One email per SMS** — each message becomes its own mail, subject like
   `[SMS][卡1·中国移动] 138****1234 · 10-24 09:30` (full number optional), full body + receive time +
   slot + 8-char message ID.
-- **Device status (v1.4.0)** — every mail also carries the **current battery level, the last known
+- **Device status (v1.4.0)** — every mail also carries the current battery level, the last known
   location (lat/lon + accuracy), and the phone number of the SIM that received the SMS (first 3 +
-  last 4 digits, e.g. `卡1：181****1468`)** — handy at school to confirm the phone's state and which
+  last 4 digits, e.g. `卡1：181****1468`) — handy at school to confirm the phone's state and which
   card received the message. The app detects how many SIMs are inserted and reads each card's own
-  number automatically — **this needs phone-info permission**; if a privacy feature such as MIUI's
+  number automatically, which needs phone-info permission; if a privacy feature such as MIUI's
   "Blank Pass" makes the system return an empty number, turn that protection off for the app (or set
   "phone info / read phone number" to always allow), otherwise enter the number manually in settings
   (the manual value is only a fallback when the system cannot read it). If something is unavailable

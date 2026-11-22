@@ -1,4 +1,4 @@
-[🇨🇳 中文](README.zh-CN.md) · [⬇ Download](https://github.com/zyq1223334444/sms-forwarder/releases)
+﻿[🇨🇳 中文](README.zh-CN.md) · [⬇ Download](https://github.com/zyq1223334444/sms-forwarder/releases)
 # SmsForwarder
 **Every SMS your phone receives, forwarded to your mailbox — one email per message, in real time.**
 
@@ -31,6 +31,16 @@ Two independent paths feed the queue:
 - **One email per SMS** — each message becomes its own mail, subject like
   `[SMS][卡1·中国移动] 138****1234 · 10-24 09:30` (full number optional), full body + receive time +
   slot + 8-char message ID.
+- **Device status (v1.4.0)** — every mail also carries the current battery level, the last known
+  location (lat/lon + accuracy), and the phone number of the SIM that received the SMS (first 3 +
+  last 4 digits, e.g. `卡1：181****1468`) — handy at school to confirm the phone's state and which
+  card received the message. The app detects how many SIMs are inserted and reads each card's own
+  number automatically, which needs phone-info permission; if a privacy feature such as MIUI's
+  "Blank Pass" makes the system return an empty number, turn that protection off for the app (or set
+  "phone info / read phone number" to always allow), otherwise enter the number manually in settings
+  (the manual value is only a fallback when the system cannot read it). If something is unavailable
+  (no permission / no cached fix / number not written by the carrier) the reason is stated; sending
+  is never affected.
 - **Real-time forwarding** — broadcast receiver + foreground keep-alive service; on MIUI/HyperOS,
   follow the in-app setup guide (auto-start, no battery restriction, task lock) and the app behaves
   like a system app.
@@ -57,9 +67,10 @@ Two independent paths feed the queue:
   plaintext, `allowBackup=false`.
 - **Dry-run (off by default)** — when enabled, messages are listened to/parsed/stored locally but
   never sent; once off, real forwarding is active.
-- **Shizuku guardian (v1.3.2, off by default)** — while the auto-network switch is on, checks every
-  5 minutes and pins `shizuku_server` to the system's "unkillable" level (`oom_score_adj = -1000`),
-  so background cleaners (MIUI/HyperOS) can no longer reclaim it; notifies you if Shizuku stops.
+- **Shizuku guardian (v1.3.3)** — runs every 5 minutes inside the foreground service while
+  auto-network is on: pins `shizuku_server` to the "unkillable" level (`oom_score_adj = -1000`) and
+  raises the standby bucket of Shizuku/this app to `active`; notifies with self-service recovery
+  steps if Shizuku stops. Note: MIUI's SwipeUpClean ignores oom protection — lock Shizuku in recents.
 - **About screen** — Settings → About shows the version and offline Chinese/English READMEs.
 
 ## Download
@@ -68,7 +79,7 @@ Get the APK from the [Releases](https://github.com/zyq1223334444/sms-forwarder/r
 
 | Asset | Notes |
 |---|---|
-| `SmsForwarder-v1.3.2.apk` | latest, install directly on the phone (Shizuku guardian) |
+| `SmsForwarder-v1.3.3.apk` | latest, install directly on the phone (Shizuku guardian) |
 
 Side-load only — this app reads SMS / phone state, so it is **not** published on any app store.
 
@@ -136,28 +147,50 @@ if installed but not activated, it shows the activation steps.
 Without Shizuku (or root) auto-network cannot work; in that case a network failure is kept waiting
 and the message is resent automatically when the network returns — no SMS is lost.
 
-### Shizuku guardian (v1.3.2, keeps Shizuku alive)
+### Shizuku guardian (v1.3.3, keeps Shizuku alive)
 
 Some systems (especially MIUI/HyperOS) reclaim the Shizuku process in the background, which breaks
-auto-network. **v1.3.2 ships a Shizuku guardian**:
+auto-network. **v1.3.3 guardian**:
 
-- Enabled automatically while the "auto network" switch is on; checks every 5 minutes;
-- While Shizuku is running, it uses Shizuku's shell capability to write `shizuku_server`'s
-  `oom_score_adj` to `-1000` (the system's "unkillable" level), so LMKD no longer reclaims it
-  (verified on-device, stays applied);
+- Enabled automatically while the "auto network" switch is on; it runs every 5 minutes inside the
+  foreground keep-alive service (immune to Doze alarm delays), with an AlarmManager periodic job as
+  the fallback after the service is killed;
+- While Shizuku is running, it uses Shizuku's shell capability to:
+  - write `shizuku_server`'s `oom_score_adj` to `-1000` (the system's "unkillable" level), so LMKD
+    no longer reclaims it (verified on-device, stays applied);
+  - run `am set-standby-bucket ... active` for Shizuku and for this app (verified executable), so
+    the system is much less likely to treat them as reclaimable;
+  - add Shizuku to the doze battery whitelist (idempotent);
 - The pid is resolved dynamically (`pidof shizuku_server`) — no installation path probing needed,
   works on every device;
-- If Shizuku is fully stopped (e.g. after a reboot before re-activation), the guardian cannot
-  restart it by itself (the activation binary must run as adb/shell; without Shizuku the app has
-  no shell channel) — instead it shows an **ongoing notification** to remind you to re-activate,
-  which disappears once Shizuku is back.
+- If Shizuku is fully stopped, the guardian cannot restart it (the activation binary must run as
+  adb/shell; without Shizuku the app has no shell channel) — it shows an **ongoing notification**
+  with the self-service recovery steps below.
 
-Together with the MIUI keep-alive table below, Shizuku stays resident and auto-network keeps working.
+**Verified limits (2026-11-22, read this):** MIUI's *SwipeUpClean* ("clean all" / swipe-up in
+recents) does **not** go through LMKD — the system exit record shows
+`reason=13 (OTHER KILLS BY SYSTEM)`, `description=SwipeUpClean` — so it **ignores
+`oom_score_adj=-1000`**. And shell cannot write another uid's (Shizuku app's) `oom_score_adj`
+(`Permission denied` in testing). So no code can fully prevent SwipeUpClean: the only hard fix is to
+**lock Shizuku in the recents screen** (keep-alive item 3 below).
+
+**Self-service recovery after Shizuku stops (no PC needed):**
+
+1. **Lock Shizuku in recents** — pull down the Shizuku card in the recents screen until you see the
+   lock icon (most important; prevents the next swipe-up kill);
+2. **Re-activate via wireless debugging** — Developer options → enable **Wireless debugging** →
+   open the Shizuku app → tap **"Start via wireless debugging"** → pair and start the service;
+3. The guardian notification disappears and auto-network works again.
+
+> Don't want to bother with Shizuku? Turn the **"Auto network" switch off** and simply keep the
+> phone online (disable "disconnect WLAN/mobile data while asleep" in MIUI settings). Forwarding then
+> does not depend on Shizuku at all — foreground keep-alive + compensation scan still deliver; while
+> offline, mails are queued and sent once the network is back (nothing is lost).
 
 ## MIUI / HyperOS keep-alive (core 3, do all of them)
 
 > **Apply to BOTH apps**: ① SmsForwarder (forwarding itself) and ② Shizuku (auto-network depends on it).
-> Verified on-device (v1.3.2): once Shizuku's app process is reclaimed, `shizuku_server` exits with
+> Verified on-device (v1.3.3): once Shizuku's app process is reclaimed, `shizuku_server` exits with
 > it and auto-network breaks — so **keeping Shizuku alive matters even more than keeping this app
 > alive**. In particular, never swipe Shizuku away in the recents screen.
 
@@ -239,3 +272,4 @@ Signing: the release build signs with `key/smsforwarder.jks` configured in `loca
 The auto-network feature bundles **Shizuku** (Apache License 2.0, © RikkaApps) as an **unmodified**
 official installer; the full license and notice ship with the app
 (`app/src/main/assets/shizuku/LICENSE`, `NOTICE.txt`).
+
