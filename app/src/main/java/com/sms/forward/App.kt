@@ -25,6 +25,11 @@ class App : Application() {
                 runCatching { KeepAliveService.start(this) }
             }, 3000L)
         }
+        // 打开应用时立即检查一次 Shizuku 状态（不必等守护的 60 秒首跑）：
+        // 活着→立刻加护；死了→立刻发通知提醒（自动开网开关关闭时内部直接返回）
+        Handler(Looper.getMainLooper()).postDelayed({
+            runCatching { ShizukuGuard.checkAndProtect(this) }
+        }, 5000L)
     }
 
     companion object {
