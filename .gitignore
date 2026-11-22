@@ -20,7 +20,7 @@ apk_check/
 *.png
 *.jpg
 ui*.xml
-/u*.xml
+/*.xml
 /v140_test*.txt
 
 /dist/
