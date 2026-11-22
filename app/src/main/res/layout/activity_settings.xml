@@ -214,6 +214,21 @@
             android:text="邮件主题显示完整号码"
             android:textSize="14sp" />
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="每张卡的本机号码（用于邮件标注前3后4）"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="自动读取每张卡的号码需要允许应用读取电话信息。若手机开启了“空白通行证”等隐私保护（系统会返回空白号码），请在权限管理里关闭它，或把“电话信息/读取电话号码”设为始终允许；实在读不到时可在下方手动填写，手动值只在系统读不到时作为兜底使用。"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="12sp" />
+
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/ti_owner_number_1"
             android:layout_width="match_parent"

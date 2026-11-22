@@ -35,9 +35,12 @@ Two independent paths feed the queue:
   location (lat/lon + accuracy), and the phone number of the SIM that received the SMS (first 3 +
   last 4 digits, e.g. `卡1：181****1468`)** — handy at school to confirm the phone's state and which
   card received the message. The app detects how many SIMs are inserted and reads each card's own
-  number automatically (a per-card manual entry is used only when the carrier does not expose the
-  number). If something is unavailable (no permission / no cached fix / number not written by
-  the carrier) the reason is stated; sending is never affected.
+  number automatically — **this needs phone-info permission**; if a privacy feature such as MIUI's
+  "Blank Pass" makes the system return an empty number, turn that protection off for the app (or set
+  "phone info / read phone number" to always allow), otherwise enter the number manually in settings
+  (the manual value is only a fallback when the system cannot read it). If something is unavailable
+  (no permission / no cached fix / number not written by the carrier) the reason is stated; sending
+  is never affected.
 - **Real-time forwarding** — broadcast receiver + foreground keep-alive service; on MIUI/HyperOS,
   follow the in-app setup guide (auto-start, no battery restriction, task lock) and the app behaves
   like a system app.
