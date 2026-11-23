@@ -257,6 +257,7 @@ does not affect forwarding.
 - Fixed: `FAILED_NETWORK` was missing from the status enum, so Room read network-failed rows back as "pending" (wrong label, wrong queue semantics).
 - Fixed: the broadcast path and the compensation scan hashed different dedup inputs (part count, SIM id), producing two records and two emails for one long SMS or when the SIM extra was missing. Both paths now use sender + system timestamp + body, with a content-based fallback for records written by older builds.
 - Fixed: send-queue backoff lowered from 30 s to 10 s (WorkManager minimum) so a retrying round no longer delays new SMS for minutes; the queue re-checks PENDING before finishing to shrink the lost-wakeup window.
+- Fixed: main-thread I/O inside the broadcast callback — the probe write (encrypted prefs) and PDU parsing used to run on the `onReceive` main thread, where the first Keystore access on MIUI can take hundreds of milliseconds. The whole chain now runs inside the `goAsync` IO coroutine; the main thread only grabs the handle.
 - New: real-time link self-check on the status screen (last broadcast time + today's count) to tell "broadcast blocked by the system" apart from "queue problem".
 - New: compensation scan on app open (documented since v1.3 but never implemented), throttled to once per 10 minutes.
 - Docs: MIUI/HyperOS "SMS verification code protection" blocks verification-code broadcasts — added the toggle and troubleshooting steps.

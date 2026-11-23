@@ -35,30 +35,30 @@ class SmsReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) return
-        // 先记探针：即使后面的 PDU 解析失败，状态页也能看到"广播确实来过"
-        SmsLinkProbe.recordBroadcast(context)
-        Log.i(TAG, "收到 SMS_RECEIVED 广播")
 
-        val messages = runCatching {
-            Telephony.Sms.Intents.getMessagesFromIntent(intent)
-        }.getOrElse {
-            Log.w(TAG, "PDU 解析失败: ${it.message}")
-            return
-        }
-        if (messages.isEmpty()) return
-        Log.i(TAG, "广播携带 ${messages.size} 个分片")
-
-        val subIdExtra = intent.getIntExtra(EXTRA_SUBSCRIPTION_ID, -1).takeIf { it != -1 }
-        val slotExtra = intent.getIntExtra(EXTRA_SLOT, -1).takeIf { it != -1 }
-
+        // 广播回调在 main 线程：这里只拿 goAsync 句柄，PDU 解析、加密存储写入、
+        // Room 入库全部放到 IO 协程，避免 Keystore / 磁盘 I/O 拖慢主线程（MIUI 上首访问较慢）。
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                // 先记探针：即使后面的 PDU 解析失败，状态页也能看到"广播确实来过"
+                SmsLinkProbe.recordBroadcast(context)
+                Log.i(TAG, "收到 SMS_RECEIVED 广播")
+
+                val messages = runCatching {
+                    Telephony.Sms.Intents.getMessagesFromIntent(intent)
+                }.getOrNull()
+                if (messages.isNullOrEmpty()) {
+                    Log.w(TAG, "PDU 解析失败或广播无分片")
+                    return@launch
+                }
+                Log.i(TAG, "广播携带 ${messages.size} 个分片")
+
                 handleMessages(
                     context = context.applicationContext,
                     messages = messages.toList(),
-                    subId = subIdExtra,
-                    slot = slotExtra
+                    subId = intent.getIntExtra(EXTRA_SUBSCRIPTION_ID, -1).takeIf { it != -1 },
+                    slot = intent.getIntExtra(EXTRA_SLOT, -1).takeIf { it != -1 }
                 )
             } catch (t: Throwable) {
                 Log.e(TAG, "处理短信异常", t)
