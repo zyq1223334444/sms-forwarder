@@ -43,7 +43,11 @@ Two independent paths feed the queue:
   is never affected.
 - **Real-time forwarding** — broadcast receiver + foreground keep-alive service; on MIUI/HyperOS,
   follow the in-app setup guide (auto-start, no battery restriction, task lock) and the app behaves
-  like a system app.
+  like a system app. Since v1.4.1 the broadcast path isolates SIM lookup failures: an unreadable
+  slot or number degrades to "unknown slot" instead of dropping the whole message.
+- **Real-time link self-check (v1.4.1)** — the status screen shows "last broadcast X min ago,
+  N today". A permanent "no broadcast received yet" means the system is blocking the broadcast
+  (battery restrictions or MIUI's verification-code protection), so only the compensation scan works.
 - **Never loses a message** — compensation scan on app open, every 15 minutes, or the manual
   **Scan now** button re-queues all SMS received in the last 30 minutes; duplicate emails are
   impossible (dedup by message key).
@@ -79,7 +83,7 @@ Get the APK from the [Releases](https://github.com/zyq1223334444/sms-forwarder/r
 
 | Asset | Notes |
 |---|---|
-| `SmsForwarder-v1.3.3.apk` | latest, install directly on the phone (Shizuku guardian) |
+| `SmsForwarder-v1.4.1.apk` | latest, install directly on the phone (real-time link self-check + lost-message fixes) |
 
 Side-load only — this app reads SMS / phone state, so it is **not** published on any app store.
 
@@ -203,6 +207,12 @@ recents) does **not** go through LMKD — the system exit record shows
 Then enable **Notifications** (the foreground service depends on it) and keep WLAN connected while
 asleep. The in-app guide lists the full set.
 
+> Also turn off **"SMS verification code protection"** (MIUI/HyperOS). That switch only delivers
+> notification-type SMS (verification codes, bank notices) to the system SMS app, so third-party
+> apps never see the broadcast. It lives in Security Center / Phone Manager (the exact path varies
+> by version — search for "验证码"/"verification code"), and real-time forwarding of codes only works
+> with it disabled.
+
 > Why WeChat-style "works after being force-stopped" is not possible here: WeChat is a
 > system-preinstalled app with a vendor push channel — messages are delivered by the system push
 > service and do not need the app process. A third-party app cannot join that channel. What this app
@@ -221,7 +231,15 @@ the spam folder — some mailboxes flag "self-sent" mail as spam.
 
 **Duplicate emails?** Extremely rare (only when the mail went out but the phone missed the
 confirmation) — the 8-char message ID in the body identifies duplicates; this is the unavoidable
-cost of at-least-once semantics.
+cost of at-least-once semantics. Since v1.4.1 the broadcast path and the compensation scan share
+one dedup key (older builds hashed the part count and SIM id into it, so a long SMS or a missing
+SIM extra produced two records and two emails).
+
+**Mail arrives late, or only after pressing "Scan now"?** In order:
+1. Status screen, top line "Real-time link": "last broadcast X ago" means the broadcast works — look at the queue status in the list. "No broadcast received yet" means the system is blocking it; go to step 2.
+2. Turn off MIUI/HyperOS "SMS verification code protection" (see the keep-alive section) and make sure the app was not **Force stopped** — after a force stop no broadcast can wake any app; open the app once.
+3. Check the keep-alive trio (auto-start, no battery restriction, task lock): waking the process for a broadcast depends on auto-start.
+4. v1.4.1 fixes the other cause: when the SIM lookup (slot/carrier/own number) threw, older builds failed the whole insert — the broadcast arrived but nothing was recorded. SIM data is now display-only; a failure degrades to "unknown slot" and the SMS is still queued and sent.
 
 **Sent SMS are not forwarded** — by design: only **received** SMS are forwarded.
 
@@ -230,6 +248,23 @@ does not affect forwarding.
 
 **Long SMS?** Multi-part bodies are reassembled into one mail; extreme reordering may mark the body
 "incomplete", content is sent as received.
+
+## Changelog
+
+### v1.4.1 (2026-11-23)
+
+- Fixed: a failing SIM lookup (slot / carrier / own number) aborted the whole insert in older builds — the broadcast arrived but nothing was recorded, so the SMS only appeared after a manual scan. SIM data is display-only now; failures degrade to "unknown slot" and the SMS is still queued and sent.
+- Fixed: `FAILED_NETWORK` was missing from the status enum, so Room read network-failed rows back as "pending" (wrong label, wrong queue semantics).
+- Fixed: the broadcast path and the compensation scan hashed different dedup inputs (part count, SIM id), producing two records and two emails for one long SMS or when the SIM extra was missing. Both paths now use sender + system timestamp + body, with a content-based fallback for records written by older builds.
+- Fixed: send-queue backoff lowered from 30 s to 10 s (WorkManager minimum) so a retrying round no longer delays new SMS for minutes; the queue re-checks PENDING before finishing to shrink the lost-wakeup window.
+- New: real-time link self-check on the status screen (last broadcast time + today's count) to tell "broadcast blocked by the system" apart from "queue problem".
+- New: compensation scan on app open (documented since v1.3 but never implemented), throttled to once per 10 minutes.
+- Docs: MIUI/HyperOS "SMS verification code protection" blocks verification-code broadcasts — added the toggle and troubleshooting steps.
+
+### v1.4.0 (2026-11-22)
+
+- New: every forwarded mail carries device state (battery, last known location, and the receiving SIM's own number masked to first 3 + last 4 digits); dual-SIM detected automatically and each SIM's number read individually, with manual entry as fallback.
+- Docs: notes that "blank pass"-style privacy protection makes the system return an empty number.
 
 ## Building
 

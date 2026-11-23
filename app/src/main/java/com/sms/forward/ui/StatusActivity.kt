@@ -20,6 +20,7 @@ import com.sms.forward.data.SmsEntity
 import com.sms.forward.data.SmsStatus
 import com.sms.forward.mail.MailConfig
 import com.sms.forward.util.SecurePrefs
+import com.sms.forward.util.SmsLinkProbe
 import com.sms.forward.work.ReconcileWorker
 import com.sms.forward.work.SendQueueWorker
 import kotlinx.coroutines.Dispatchers
@@ -52,7 +53,19 @@ class StatusActivity : AppCompatActivity() {
         binding.btnScanNow.setOnClickListener { scanNow() }
 
         checkPermissionHint()
+        refreshRealtimeProbe()
         observeRecords()
+    }
+
+    /** 展示实时链路探针：上次短信广播到达时间与当日条数（判断是否只能靠补偿扫描） */
+    private fun refreshRealtimeProbe() {
+        binding.tvRealtime.text = SmsLinkProbe.describe(this)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // 从后台回到列表时刷新一次，避免显示过期的"上次广播"时间
+        runCatching { refreshRealtimeProbe() }
     }
 
     /** 立即触发一次补偿扫描（兜底：把系统短信库中的新短信补入库）。
@@ -192,6 +205,7 @@ private class SmsAdapter : RecyclerView.Adapter<SmsAdapter.VH>() {
         SmsStatus.DRY_RUN -> "干跑"
         SmsStatus.SENT -> "已发送"
         SmsStatus.FAILED_RETRYABLE -> "失败(重试${item.retryCount}次)"
+        SmsStatus.FAILED_NETWORK -> "失败(无网络,待补发)"
         SmsStatus.FAILED_PERMANENT -> "失败(永久)"
     }
 
@@ -200,7 +214,8 @@ private class SmsAdapter : RecyclerView.Adapter<SmsAdapter.VH>() {
         return when (status) {
             SmsStatus.SENT -> ctx.getColor(android.R.color.holo_green_dark)
             SmsStatus.DRY_RUN -> ctx.getColor(android.R.color.holo_blue_dark)
-            SmsStatus.FAILED_RETRYABLE, SmsStatus.FAILED_PERMANENT -> ctx.getColor(android.R.color.holo_red_dark)
+            SmsStatus.FAILED_RETRYABLE, SmsStatus.FAILED_NETWORK, SmsStatus.FAILED_PERMANENT ->
+                ctx.getColor(android.R.color.holo_red_dark)
             else -> ctx.getColor(android.R.color.darker_gray)
         }
     }

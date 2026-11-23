@@ -30,9 +30,20 @@ object SimInfoHelper {
             context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as SubscriptionManager
         }.getOrNull()
 
-    /** 当前活动卡数量（1=单卡，2=双卡，0=无卡） */
+    /**
+     * 当前活动卡数量（1=单卡，2=双卡，0=无卡/不可读）。
+     *
+     * 必须容错：部分 ROM（MIUI「空白通行证」/权限被回收/设备标识限制）下访问
+     * activeSubscriptionInfoList 会抛 SecurityException。历史版本此处直接调用，
+     * 异常会从 SmsReceiver 的入库流程里穿透出去，导致**整条短信不入库**，
+     * 表现为"短信到了却只有手动扫描时才补到"。
+     */
     fun getActiveSimCount(context: Context): Int =
-        subscriptionManager(context)?.activeSubscriptionInfoList?.size ?: 0
+        runCatching { subscriptionManager(context)?.activeSubscriptionInfoList?.size ?: 0 }
+            .getOrElse {
+                Log.w(TAG, "activeSubscriptionInfoList 不可读: ${it.javaClass.simpleName}")
+                0
+            }
 
     /** 全部活动卡摘要（供设置页/状态页展示单双卡状态） */
     fun getSimSummary(context: Context): List<SimInfo> {

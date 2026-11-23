@@ -14,6 +14,9 @@ import com.sms.forward.mail.MailConfig
 import com.sms.forward.mail.MailErrorClassifier
 import com.sms.forward.mail.MailSender
 import com.sms.forward.util.NetworkAutoToggler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
 /**
@@ -82,8 +85,10 @@ class SendQueueWorker(
         }
 
         // 限时结束仍有积压，或网络类失败需持续补发 → 链式续投（退避后自动重试，网络恢复即补发）
+        // 末尾再查一次 PENDING，缩小"刚判空就有新短信入库"的丢唤醒窗口。
         val remaining = dao.nextClaimableId(MAX_RETRY) != null ||
-            (networkHandled && dao.nextNetworkClaimableId() != null)
+            (networkHandled && dao.nextNetworkClaimableId() != null) ||
+            dao.pendingCount() > 0
         return if (remaining) {
             Log.i(TAG, "本轮处理 $processed 条，剩余可领取，链式续投")
             Result.retry()
@@ -167,15 +172,39 @@ class SendQueueWorker(
         /** 单次执行硬时限：9 分钟（WorkManager 上限约 10 分钟） */
         private const val HARD_TIME_LIMIT_MS = 9 * 60 * 1000L
 
+        /** 失败退避起始值：WorkManager 最小值 10 秒（v1.4.1 由 30 秒下调，压低新短信等待） */
+        private const val BACKOFF_SECONDS = 10L
+
+        /**
+         * 唤醒发送队列（异步，不等待入队完成）。
+         * 供 Activity 等常规场景使用。
+         */
         fun enqueue(context: Context) {
+            CoroutineScope(Dispatchers.IO).launch {
+                runCatching { enqueueNow(context) }
+                    .onFailure { Log.w(TAG, "入队失败: ${it.message}") }
+            }
+        }
+
+        /**
+         * 唤醒发送队列。保留 suspend 签名供广播接收器在 goAsync 协程内调用
+         * （同一协程内入队，避免 receiver 结束后进程被回收导致请求丢失）。
+         *
+         * 策略：ExistingWorkPolicy.KEEP —— 已有实例在跑时绝不打断（打断正在进行的
+         * SMTP 会话会造成 SENDING 残留与重复发信）。为压掉"新短信要等退避"的延迟，
+         * 退避从 30 秒降到 WorkManager 允许的最小值 10 秒。
+         * 队列末尾的 pendingCount 复查负责兜住"刚判空就有新短信入库"的丢唤醒窗口。
+         */
+        suspend fun enqueueNow(context: Context) {
             val request = OneTimeWorkRequestBuilder<SendQueueWorker>()
-                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, BACKOFF_SECONDS, TimeUnit.SECONDS)
                 .build()
             WorkManager.getInstance(context).enqueueUniqueWork(
                 WORK_NAME,
                 ExistingWorkPolicy.KEEP,
                 request
             )
+            Log.i(TAG, "已唤醒发送队列（KEEP，退避 ${BACKOFF_SECONDS}s）")
         }
     }
 }

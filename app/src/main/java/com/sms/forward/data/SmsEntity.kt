@@ -15,7 +15,11 @@ import androidx.room.PrimaryKey
 data class SmsEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,
 
-    /** 幂等去重键：SHA-256(normalize(sender)|receivedAt|subscriptionId|partCount|trim(body)) */
+    /**
+     * 幂等去重键：SHA-256(normalize(sender)|receivedAt|trim(body))
+     * v1.4.1 起不再包含 subscriptionId/分片数——否则广播路径与补偿扫描路径
+     * 对同一条短信会算出不同 key，导致重复入库、重复发信。
+     */
     val uniqueKey: String,
 
     /** 规范化后的发件人号码（去空格/横线、统一 +86），用于去重与主题 */

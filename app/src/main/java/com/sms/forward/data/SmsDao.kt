@@ -16,6 +16,14 @@ interface SmsDao {
     @Query("SELECT * FROM sms WHERE uniqueKey = :key LIMIT 1")
     suspend fun findByUniqueKey(key: String): SmsEntity?
 
+    /**
+     * 按「发件人 + 系统短信时间 + 正文」近似查重。
+     * 用于兼容 v1.4.0 及更早版本按旧口径（含 subscriptionId/分片数）写入的历史记录，
+     * 避免升级后同一短信被重复入库。
+     */
+    @Query("SELECT * FROM sms WHERE sender = :sender AND receivedAt = :receivedAt AND body = :body LIMIT 1")
+    suspend fun findByContent(sender: String, receivedAt: Long, body: String): SmsEntity?
+
     /** 取当前最早一条可领取记录 id：PENDING，或未超最大重试次数的 FAILED_RETRYABLE */
     @Query("SELECT id FROM sms WHERE status = 'PENDING' OR (status = 'FAILED_RETRYABLE' AND retryCount < :maxRetry) ORDER BY id ASC LIMIT 1")
     suspend fun nextClaimableId(maxRetry: Int): Long?

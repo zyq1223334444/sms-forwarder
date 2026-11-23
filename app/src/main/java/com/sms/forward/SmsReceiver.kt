@@ -11,6 +11,7 @@ import com.sms.forward.data.DedupKey
 import com.sms.forward.data.SmsEntity
 import com.sms.forward.data.SmsStatus
 import com.sms.forward.sim.SimInfoHelper
+import com.sms.forward.util.SmsLinkProbe
 import com.sms.forward.work.SendQueueWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,6 +35,8 @@ class SmsReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) return
+        // 先记探针：即使后面的 PDU 解析失败，状态页也能看到"广播确实来过"
+        SmsLinkProbe.recordBroadcast(context)
         Log.i(TAG, "收到 SMS_RECEIVED 广播")
 
         val messages = runCatching {
@@ -109,12 +112,25 @@ class SmsReceiver : BroadcastReceiver() {
 
         // 幂等：已存在则跳过（广播路径与补偿路径共享同一 key）
         if (dao.findByUniqueKey(key) != null) return
+        // 兼容旧口径（v1.4.0 及更早把 subId/分片数算进 key）留下的历史记录，
+        // 避免升级后同一短信被当成新短信重复发一封邮件。
+        val normalizedSender = DedupKey.normalizeSender(senderRaw)
+        if (dao.findByContent(normalizedSender, receivedAt, body) != null) {
+            Log.i(TAG, "近似去重命中（历史记录），跳过: sender=$senderRaw ts=$receivedAt")
+            return
+        }
 
-        val sim = SimInfoHelper.resolveSubscription(context, subId)
+        // 卡信息仅用于展示：任何查询异常都不能影响入库，否则整条短信会丢失
+        // （只在"手动扫描"时才被补回来，表现为实时转发失效）。
+        val sim = runCatching { SimInfoHelper.resolveSubscription(context, subId) }
+            .getOrElse {
+                Log.w(TAG, "卡信息解析失败，按未知卡槽入库: ${it.javaClass.simpleName}")
+                SimInfoHelper.SimInfo()
+            }
         val effectiveSlot = sim.slotIndex ?: slot
         val entity = SmsEntity(
             uniqueKey = key,
-            sender = DedupKey.normalizeSender(senderRaw),
+            sender = normalizedSender,
             senderRaw = senderRaw,
             body = body,
             receivedAt = receivedAt,
@@ -127,8 +143,8 @@ class SmsReceiver : BroadcastReceiver() {
         val rowId = dao.insert(entity)
         if (rowId != -1L) {
             Log.i(TAG, "短信入库 #$rowId sender=$senderRaw len=${body.length} parts=$partCount slot=$effectiveSlot")
-            // 唤醒串行发送队列（M5 前队列为空操作，仅占位）
-            SendQueueWorker.enqueue(context)
+            // 等待入队真正落地：goAsync 窗口结束后进程可能被回收，不能 fire-and-forget
+            SendQueueWorker.enqueueNow(context)
         }
     }
 

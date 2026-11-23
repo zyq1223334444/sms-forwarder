@@ -103,11 +103,19 @@ class ReconcileWorker(
 
                     val key = DedupKey.compute(address, date, subId, body, 1)
                     if (dao.findByUniqueKey(key) != null) continue
+                    // 兼容旧口径历史记录（同 SmsReceiver），避免升级后重复补发
+                    val normalizedSender = DedupKey.normalizeSender(address)
+                    if (dao.findByContent(normalizedSender, date, body) != null) {
+                        Log.i(TAG, "近似去重命中（历史记录），跳过 _id=$id")
+                        newBaseline = id
+                        continue
+                    }
 
-                    val sim = SimInfoHelper.resolveSubscription(ctx, subId)
+                    val sim = runCatching { SimInfoHelper.resolveSubscription(ctx, subId) }
+                        .getOrElse { SimInfoHelper.SimInfo() }
                     val entity = SmsEntity(
                         uniqueKey = key,
-                        sender = DedupKey.normalizeSender(address),
+                        sender = normalizedSender,
                         senderRaw = address,
                         body = body,
                         receivedAt = date,

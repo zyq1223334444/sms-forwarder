@@ -5,8 +5,15 @@ import java.security.MessageDigest
 /**
  * 幂等去重键生成。
  *
- * 关键约束：广播路径与系统短信库（补偿）路径对同一条短信必须算出相同的 key，
- * 因此 sender 必须先规范化（归一化），body 必须 trim。
+ * 关键约束：广播路径与系统短信库（补偿）路径对同一条短信必须算出相同的 key。
+ * 早期版本把 subscriptionId 与分片数也算进 key，两条路径口径天然不同：
+ * - 广播路径的分片数 = intent 里的 SmsMessage 个数（长短信为 2~3），补偿路径固定 1；
+ * - 广播路径的 subscriptionId 取自 intent extra，部分 ROM 读不到（null → -1），
+ *   补偿路径取自短信库的 subscription_id（真实值）。
+ * 结果同一条短信算出两个 key → 重复入库 → 同一短信发两封邮件。
+ *
+ * 因此 from v1.4.1 起 key 只由「规范化发件人 | 系统短信时间 | 正文」构成；
+ * 卡槽/运营商属于展示信息，写在实体字段里，不参与去重。
  */
 object DedupKey {
 
@@ -29,10 +36,11 @@ object DedupKey {
     /**
      * @param senderRaw  原始发件人
      * @param receivedAt 系统短信时间（毫秒）
-     * @param subscriptionId 卡 subscriptionId，可为 null
+     * @param subscriptionId 卡 subscriptionId（保留参数以兼容调用点，**不参与 key**）
      * @param body       完整正文（长短信合并后）
-     * @param partCount  长短信分片总数（合并后为分片数，普通短信为 1）
+     * @param partCount  长短信分片总数（保留参数以兼容调用点，**不参与 key**）
      */
+    @Suppress("UNUSED_PARAMETER")
     fun compute(
         senderRaw: String?,
         receivedAt: Long,
@@ -45,10 +53,6 @@ object DedupKey {
             append(normalized)
             append('|')
             append(receivedAt)
-            append('|')
-            append(subscriptionId ?: -1)
-            append('|')
-            append(partCount)
             append('|')
             append(body.trim())
         }

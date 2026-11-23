@@ -36,7 +36,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
             android:lineSpacingExtra="4dp"
-            android:text="收到的每条短信，实时转发到你的邮箱，一封一条。每封邮件还会附带手机当前电量、位置，以及收到短信那张卡的本机号码前 3 后 4 位（自动识别单双卡，逐卡读取；系统读不到时可在设置页手动填写）。手机不能带（如在校）时，把它留在家里，验证码到邮箱里看。"
+            android:text="收到的每条短信，实时转发到你的邮箱，一封一条。每封邮件还会附带手机当前电量、位置，以及收到短信那张卡的本机号码前 3 后 4 位（自动识别单双卡，逐卡读取；系统读不到时可在设置页手动填写）。状态页顶部可查实时链路（上次短信广播时间与今日条数）。手机不能带（如在校）时，把它留在家里，验证码到邮箱里看。"
             android:textColor="?attr/colorOnSurface"
             android:textSize="14sp" />
 
